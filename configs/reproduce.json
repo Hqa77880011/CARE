@@ -1,0 +1,16 @@
+{
+  "seed": 17,
+  "episodes": 40,
+  "agents": 4,
+  "actions": 3,
+  "models": 5,
+  "alpha": 0.05,
+  "steps": 20,
+  "lr": 0.1,
+  "perturbation": 0.1,
+  "fallback": "joint",
+  "safety_band": [
+    0.04,
+    0.05
+  ]
+}

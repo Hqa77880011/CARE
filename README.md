@@ -39,6 +39,19 @@ Subsets are searched in increasing cardinality, including the empty subset. Each
 
 `configs/default.json` controls finite workload size, ambiguity perturbation, risk threshold, optimizer and safety band. Exact search grows exponentially with agent count and action cardinality. `episodes.csv` reports held-out violation probability, innocent-agent KL, updated-agent fraction, reward and coordination retention, certificate coverage and abstention. `certificates.json` records before/after policies and authorization evidence. Comparison JSON/CSV and PNG/SVG charts are derived from these outputs. The finite ambiguity set, deterministic witness vocabulary, independently parameterized agent policies and table-based risk evaluation are the implementation's technical scope; there is no learned neural causal model hidden behind the certificate.
 
+## Registered compact reproduction setting
+
+Four-agent, three-action finite causal-risk tables; five ambiguity models, exact witness search and fixed 20-step controls. No model fitting or environment rollout is needed for this setting.
+
+Run from the repository root after installation. The following commands use the registered setting; they are provided for execution and have not been run as part of the source review.
+
+```bash
+care prepare --config configs/reproduce.json --data data/reproduce
+care compare --config configs/reproduce.json --data data/reproduce --output runs/reproduce
+```
+
+This setting needs no external dataset or pretrained weights. Generated inputs and declared fault/shift laws define the finite task; reported quantities retain that provenance.
+
 ## Multiple seeds
 
 Run matched configurations with different seeds in separate directories, then aggregate the generated metric files:
