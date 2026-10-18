@@ -71,7 +71,7 @@ def calibrate(a, c):
                 steps,
                 c["lr"],
             )
-            rates.append(float(risk(changed, np.asarray(case["risk_models"]))[0]))
+            rates.append(float(risk(changed, np.asarray(case["risk_models"])).max()))
         rows.append(dict(steps=steps, risk=np.mean(rates)))
     selected = min(rows, key=lambda r: abs(r["risk"] - np.mean(c["safety_band"])))
     save(Path(a.output) / "calibration.json", dict(selected=selected, candidates=rows))
