@@ -4,60 +4,45 @@ Implementation of certificate-authorized selective safety repair under a finite 
 
 ## Installation
 
-
-Use Python 3.11 or newer. Create and activate a virtual environment, then install:
+Use Python `>=3.11`. Run commands from the repository root. Create the environment, activate it with `source .venv/bin/activate` (Linux/macOS) or `.venv\Scripts\Activate.ps1` (PowerShell), then install the package.
 
 ```bash
 python -m venv .venv
 ```
 
-Activate with `source .venv/bin/activate` on Linux/macOS or `.venv\Scripts\Activate.ps1` in PowerShell, then install:
-
 ```bash
 python -m pip install -e .
-``` For GPU execution, install matching PyTorch and torchvision builds using the [PyTorch selector](https://pytorch.org/get-started/locally/).
+```
 
+## Data preparation
 
-## Incident data and workflow
-
-The public interface uses finite incident models, so certificate feasibility and subset minimality can be checked exactly. `care prepare --input incidents.json` imports a JSON list of incidents. Each incident contains categorical `policy` [agent,action], `risk_models` [model,action_1,...,action_N], a held-out risk tensor, executable action lists `allowed`, evaluation-only `innocent` agent IDs and joint-action `reward`/`coordination` tensors. Risk entries are probabilities in [0,1]. Models can be estimated from incident rollouts from [PettingZoo MPE](https://pettingzoo.farama.org/environments/mpe/) or [RWARE](https://github.com/semitable/robotic-warehouse); estimation and environment policies remain upstream of this finite interface. The supplied `prepare` without input generates a labeled finite coordination workload.
+The command below generates finite coordination incidents with categorical policies and risk tables. For your own finite incidents, add `--input incidents.json` to `prepare`; required fields are `id`, `policy`, `risk_models`, `heldout_risk`, `allowed`, `innocent`, `reward` and `coordination`.
 
 ```bash
-care prepare --data data/incidents
-care run --data data/incidents --method care --output runs
-care compare --data data/incidents --output runs
+care prepare --config configs/reproduce.json --data data/incidents
+```
+
+## Execution
+
+`configs/reproduce.json` fixes seed `17`. Keep this config for every step; change `seed` there and use separate data/output directories for independent runs.
+
+```bash
+care run --config configs/reproduce.json --data data/incidents --output runs
+```
+
+## Evaluation and comparisons
+
+`compare` executes the available methods, including component controls, on the same prepared inputs.
+
+```bash
+care compare --config configs/reproduce.json --data data/incidents --output runs
 care plot --output runs
 ```
 
-## Repair authorization
+## Outputs
 
-Subsets are searched in increasing cardinality, including the empty subset. Each executable deterministic action witness is evaluated against every declared risk model while all unselected policies stay fixed. The first feasible witness carries an exact cardinality lower bound, checked risks, ambiguity-set IDs and full search trace. If no witness satisfies `alpha`, selectivity abstains and uses the joint safety optimizer. The finite witness policy is the authorized repair; no gradient is allowed to change unselected agents. The gradient optimizer is used by joint and attribution controls. Both certificate methods apply their declared finite witness. Deterministic witness policies are exact categorical policies; KL uses a 1e-12 probability floor for a finite numerical report.
+`runs/<method>/` contains `episodes.csv`, `certificates.json` and `metrics.json`. Comparisons write `runs/comparison.csv` and `runs/comparison.json`; plots go to `runs/figures/`.
 
-`point` certifies against only the nominal model, `joint` updates every policy, and `attribution` takes the same mask size using one-agent counterfactual risk reduction. These are controlled finite-model comparisons, rather than full implementations of external MCTS/SPIBB planners. Gradient step count and learning rate are explicit settings. `calibrate` sweeps step counts on a separate calibration incident directory and writes candidate worst-case ambiguity-set risks; use the selected setting in the test config. Never use held-out test incidents for this step. The comparator reports `within_safety_band` and does not silently assert safety matching.
+## Verification
 
-## Metrics
-
-`configs/default.json` controls finite workload size, ambiguity perturbation, risk threshold, optimizer and safety band. Exact search grows exponentially with agent count and action cardinality. `episodes.csv` reports held-out violation probability, innocent-agent KL, updated-agent fraction, reward and coordination retention, certificate coverage and abstention. `certificates.json` records before/after policies and authorization evidence. Comparison JSON/CSV and PNG/SVG charts are derived from these outputs. The finite ambiguity set, deterministic witness vocabulary, independently parameterized agent policies and table-based risk evaluation are the implementation's technical scope; there is no learned neural causal model hidden behind the certificate.
-
-## Registered compact reproduction setting
-
-Four-agent, three-action finite causal-risk tables; five ambiguity models, exact witness search and fixed 20-step controls. No model fitting or environment rollout is needed for this setting.
-
-Run from the repository root after installation. The following commands use the registered setting; they are provided for execution and have not been run as part of the source review.
-
-```bash
-care prepare --config configs/reproduce.json --data data/reproduce
-care compare --config configs/reproduce.json --data data/reproduce --output runs/reproduce
-```
-
-This setting needs no external dataset or pretrained weights. Generated inputs and declared fault/shift laws define the finite task; reported quantities retain that provenance.
-
-## Multiple seeds
-
-Run matched configurations with different seeds in separate directories, then aggregate the generated metric files:
-
-```bash
-care-report --inputs runs/seed0/metrics.json runs/seed1/metrics.json --output outputs/seeds
-```
-
-Use actual metric paths from your runs, including method subdirectories where applicable. Keep dataset, split and experimental condition fixed within a report. Summary CSV/JSON gives per-method arithmetic means and sample standard deviations; a single run has no standard-deviation estimate.
+Source checks used Python 3.13.5. Installed dependency metadata: numpy 2.1.3, torch 2.7.1+cu118, scipy 1.15.3, matplotlib 3.10.0. Python AST, configuration files, CLI parser definitions and source input/output paths were checked without invoking command handlers. Training, full evaluation and CI were not run for this review.
